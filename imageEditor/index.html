@@ -20,10 +20,24 @@
 
 <body>
     <div class="container mt-5">
+              
+
         <h2 class="mt-5">Images</h2>
-        <img class="m-1 thumbnail rounded-3 border-1" width="70px" src="images/image1.jpg" />
-        <a href="#" class="edit-image-link" data-image-id="1" data-image-src="images/image1.jpg" data-toggle="modal"
-            data-target="#imageEditorModal">Edit</a>
+        <table>
+            <tr>
+               
+                    <td>
+                        <img class="m-1 thumbnail rounded-3 border-1" width="70px"
+                            src="images/image1.jpg" />
+                        <br>
+                        <a href="#" class="edit-image-link" data-image-id="1"
+                            data-image-src="images/image1.jpg" data-toggle="modal"
+                            data-target="#imageEditorModal">Edit</a>
+                    </td>
+                    
+                
+            </tr>
+        </table>
     </div>
 
     <!-- Modal -->
@@ -51,22 +65,28 @@
         </div>
     </div>
 
+  
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"
         integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/4.6.0/fabric.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/4.3.0/fabric.min.js"></script>
     <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"></script>
     <script>
         $(document).ready(function() {
             var canvas = new fabric.Canvas('c');
             var imgElement = new Image();
+            var currentImageId;
             var currentTool = '';
 
             // Event listener for clicking "Edit" link
             $('.edit-image-link').on('click', function(e) {
                 e.preventDefault();
-                // Get the image ID and source from the clicked link
-                var imageSrc = $(this).data('image-src');
 
+                // Get the image ID and source from the clicked link
+                var imageId = $(this).data('image-id');
+                var imageSrc = $(this).data('image-src');
+                currentImageId = imageId;
+
+                // Load the image into the canvas
                 imgElement.src = imageSrc;
                 imgElement.onload = function() {
                     canvas.clear();
@@ -76,78 +96,61 @@
                         selectable: false,
                         evented: false
                     });
-                    var scaleFactor = Math.min(canvas.width / imgElement.width, canvas.height / imgElement.height);
+
+                    // Scale the image to fit the canvas while maintaining aspect ratio
+                    var scaleFactor = Math.min(canvas.width / imgElement.width, canvas.height /
+                        imgElement.height);
                     imgInstance.scale(scaleFactor);
+
                     canvas.add(imgInstance);
                     canvas.centerObject(imgInstance);
                     canvas.renderAll();
                 };
 
+                // Show the modal
                 $('#imageEditorModal').modal('show');
             });
 
+            // Text tool activation
             $('#text-tool').on('click', function() {
                 currentTool = 'text';
                 canvas.isDrawingMode = false;
                 canvas.selection = true;
+
+                // Remove any previous event handlers to avoid multiple bindings
                 canvas.off('mouse:down');
+
                 canvas.on('mouse:down', function(options) {
                     if (currentTool !== 'text') return;
+
                     var pointer = canvas.getPointer(options.e);
                     var text = new fabric.IText('Sample Text', {
                         left: pointer.x,
                         top: pointer.y,
-                        fill: '#000000',
+                        fill: '#FF0000',
                         fontSize: 20,
                         editable: true,
                         selectable: true
                     });
+
                     canvas.add(text);
                     canvas.setActiveObject(text);
                     text.enterEditing();
                     text.selectAll();
                     currentTool = ''; // reset tool to avoid creating multiple text objects
+
+                    // Set focus to the hidden textarea
                     text.hiddenTextarea.focus();
+
+                    // Remove mouse:down event listener to prevent multiple text object creation
                     canvas.off('mouse:down');
                 });
             });
-
             $('#reset-image').on('click', function() {
                 imgElement.src = imgElement.src; // Reload the original image
             });
 
-            // Ensure hiddenTextarea is focused when editing text
-            canvas.on('text:changed', function() {
-                canvas.renderAll();
             });
-
-            canvas.on('mouse:up', function(e) {
-                if (e.target && e.target.type === 'i-text') {
-                    e.target.enterEditing();
-                    e.target.hiddenTextarea.focus();
-                }
-            });
-
-            canvas.on('selection:created', function(e) {
-                if (e.target && e.target.type === 'i-text') {
-                    e.target.enterEditing();
-                    e.target.hiddenTextarea.focus();
-                }
-            });
-
-            canvas.on('selection:updated', function(e) {
-                if (e.target && e.target.type === 'i-text') {
-                    e.target.enterEditing();
-                    e.target.hiddenTextarea.focus();
-                }
-            });
-
-            $(document).on('keydown', function(e) {
-                if (canvas.getActiveObject() && canvas.getActiveObject().isEditing) {
-                    canvas.getActiveObject().hiddenTextarea.focus();
-                }
-            });
-        });
     </script>
 </body>
 
