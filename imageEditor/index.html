@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <title>Image Editor</title>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css">
+    <style>
+        .thumbnail {
+            cursor: pointer;
+        }
+
+        .tools {
+            margin-top: 10px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container mt-5">
+        <h2 class="mt-5">Images</h2>
+        <img class="m-1 thumbnail rounded-3 border-1" width="70px" src="images/image1.jpg" />
+        <a href="#" class="edit-image-link" data-image-id="1" data-image-src="images/image1.jpg" data-toggle="modal"
+            data-target="#imageEditorModal">Edit</a>
+    </div>
+
+    <!-- Modal -->
+    <div class="modal fade" id="imageEditorModal" tabindex="-1" role="dialog" aria-labelledby="imageEditorModalLabel"
+        aria-hidden="true">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="imageEditorModalLabel">Image Editor</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <canvas id="c" width="500" height="500" style="border:1px solid #000000;"></canvas>
+                    <div class="tools mt-3">
+                        <button id="text-tool">Text</button>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-warning" id="reset-image">Reset</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"
+        integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/4.6.0/fabric.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js"></script>
+    <script>
+        $(document).ready(function() {
+            var canvas = new fabric.Canvas('c');
+            var imgElement = new Image();
+            var currentTool = '';
+
+            // Event listener for clicking "Edit" link
+            $('.edit-image-link').on('click', function(e) {
+                e.preventDefault();
+                // Get the image ID and source from the clicked link
+                var imageSrc = $(this).data('image-src');
+
+                imgElement.src = imageSrc;
+                imgElement.onload = function() {
+                    canvas.clear();
+                    var imgInstance = new fabric.Image(imgElement, {
+                        left: 0,
+                        top: 0,
+                        selectable: false,
+                        evented: false
+                    });
+                    var scaleFactor = Math.min(canvas.width / imgElement.width, canvas.height / imgElement.height);
+                    imgInstance.scale(scaleFactor);
+                    canvas.add(imgInstance);
+                    canvas.centerObject(imgInstance);
+                    canvas.renderAll();
+                };
+
+                $('#imageEditorModal').modal('show');
+            });
+
+            $('#text-tool').on('click', function() {
+                currentTool = 'text';
+                canvas.isDrawingMode = false;
+                canvas.selection = true;
+                canvas.off('mouse:down');
+                canvas.on('mouse:down', function(options) {
+                    if (currentTool !== 'text') return;
+                    var pointer = canvas.getPointer(options.e);
+                    var text = new fabric.IText('Sample Text', {
+                        left: pointer.x,
+                        top: pointer.y,
+                        fill: '#000000',
+                        fontSize: 20,
+                        editable: true,
+                        selectable: true
+                    });
+                    canvas.add(text);
+                    canvas.setActiveObject(text);
+                    text.enterEditing();
+                    text.selectAll();
+                    currentTool = ''; // reset tool to avoid creating multiple text objects
+                    text.hiddenTextarea.focus();
+                    canvas.off('mouse:down');
+                });
+            });
+
+            $('#reset-image').on('click', function() {
+                imgElement.src = imgElement.src; // Reload the original image
+            });
+
+            // Ensure hiddenTextarea is focused when editing text
+            canvas.on('text:changed', function() {
+                canvas.renderAll();
+            });
+
+            canvas.on('mouse:up', function(e) {
+                if (e.target && e.target.type === 'i-text') {
+                    e.target.enterEditing();
+                    e.target.hiddenTextarea.focus();
+                }
+            });
+
+            canvas.on('selection:created', function(e) {
+                if (e.target && e.target.type === 'i-text') {
+                    e.target.enterEditing();
+                    e.target.hiddenTextarea.focus();
+                }
+            });
+
+            canvas.on('selection:updated', function(e) {
+                if (e.target && e.target.type === 'i-text') {
+                    e.target.enterEditing();
+                    e.target.hiddenTextarea.focus();
+                }
+            });
+
+            $(document).on('keydown', function(e) {
+                if (canvas.getActiveObject() && canvas.getActiveObject().isEditing) {
+                    canvas.getActiveObject().hiddenTextarea.focus();
+                }
+            });
+        });
+    </script>
+</body>
+
+</html>
